@@ -25,7 +25,7 @@ const func = async (msg, mobile) => {
     let lang = configs_1.config.getConfig("defaultLang").getValue(msg);
     const content = util_1.trimMsg(msg);
     for (const term of content.split(/ +/)) {
-        if (data_1.data.langs.indexOf(term.toLowerCase()) > -1) {
+        if (data_1.data.langs.includes(term.toLowerCase())) {
             lang = term.toLowerCase();
         }
     }
@@ -44,51 +44,53 @@ const func = async (msg, mobile) => {
             currentSection = line.slice(1);
             continue;
         }
-        const card = await data_1.data.getCard(line, lang);
-        if (card) {
-            let name = card.id.toString();
-            if (card.text[lang]) {
-                name = card.text[lang].name;
-            }
-            if (currentSection === "side") {
-                if (name in deckRecord.side) {
-                    deckRecord.side[name]++;
+        if (line.trim().length > 0) {
+            const card = await data_1.data.getCard(line, lang);
+            if (card) {
+                let name = card.id.toString();
+                if (card.text[lang]) {
+                    name = card.text[lang].name;
                 }
-                else {
-                    deckRecord.side[name] = 1;
-                }
-            }
-            else if (currentSection === "extra") {
-                if (name in deckRecord.extra) {
-                    deckRecord.extra[name]++;
-                }
-                else {
-                    deckRecord.extra[name] = 1;
-                }
-            }
-            else if (currentSection === "main") {
-                if (card.data.isType(ygopro_data_1.enums.type.TYPE_MONSTER)) {
-                    if (name in deckRecord.monster) {
-                        deckRecord.monster[name]++;
+                if (currentSection === "side") {
+                    if (name in deckRecord.side) {
+                        deckRecord.side[name]++;
                     }
                     else {
-                        deckRecord.monster[name] = 1;
+                        deckRecord.side[name] = 1;
                     }
                 }
-                else if (card.data.isType(ygopro_data_1.enums.type.TYPE_SPELL)) {
-                    if (name in deckRecord.spell) {
-                        deckRecord.spell[name]++;
+                else if (currentSection === "extra") {
+                    if (name in deckRecord.extra) {
+                        deckRecord.extra[name]++;
                     }
                     else {
-                        deckRecord.spell[name] = 1;
+                        deckRecord.extra[name] = 1;
                     }
                 }
-                else if (card.data.isType(ygopro_data_1.enums.type.TYPE_TRAP)) {
-                    if (name in deckRecord.trap) {
-                        deckRecord.trap[name]++;
+                else if (currentSection === "main") {
+                    if (card.data.isType(ygopro_data_1.enums.type.TYPE_MONSTER)) {
+                        if (name in deckRecord.monster) {
+                            deckRecord.monster[name]++;
+                        }
+                        else {
+                            deckRecord.monster[name] = 1;
+                        }
                     }
-                    else {
-                        deckRecord.trap[name] = 1;
+                    else if (card.data.isType(ygopro_data_1.enums.type.TYPE_SPELL)) {
+                        if (name in deckRecord.spell) {
+                            deckRecord.spell[name]++;
+                        }
+                        else {
+                            deckRecord.spell[name] = 1;
+                        }
+                    }
+                    else if (card.data.isType(ygopro_data_1.enums.type.TYPE_TRAP)) {
+                        if (name in deckRecord.trap) {
+                            deckRecord.trap[name]++;
+                        }
+                        else {
+                            deckRecord.trap[name] = 1;
+                        }
                     }
                 }
             }
@@ -113,35 +115,25 @@ const func = async (msg, mobile) => {
     mainHeader += headerParts.join(", ") + ")";
     let mainBody = "";
     for (const name in deckRecord.monster) {
-        if (deckRecord.monster.hasOwnProperty(name)) {
-            mainBody += deckRecord.monster[name] + " " + name + "\n";
-        }
+        mainBody += deckRecord.monster[name] + " " + name + "\n";
     }
     for (const name in deckRecord.spell) {
-        if (deckRecord.spell.hasOwnProperty(name)) {
-            mainBody += deckRecord.spell[name] + " " + name + "\n";
-        }
+        mainBody += deckRecord.spell[name] + " " + name + "\n";
     }
     for (const name in deckRecord.trap) {
-        if (deckRecord.trap.hasOwnProperty(name)) {
-            mainBody += deckRecord.trap[name] + " " + name + "\n";
-        }
+        mainBody += deckRecord.trap[name] + " " + name + "\n";
     }
     const extraCount = valSum(deckRecord.extra);
     const extraHeader = "Extra Deck (" + extraCount + " cards)";
     let extraBody = "";
     for (const name in deckRecord.extra) {
-        if (deckRecord.extra.hasOwnProperty(name)) {
-            extraBody += deckRecord.extra[name] + " " + name + "\n";
-        }
+        extraBody += deckRecord.extra[name] + " " + name + "\n";
     }
     const sideCount = valSum(deckRecord.side);
     const sideHeader = "Side Deck (" + sideCount + " cards)";
     let sideBody = "";
     for (const name in deckRecord.side) {
-        if (deckRecord.side.hasOwnProperty(name)) {
-            sideBody += deckRecord.side[name] + " " + name + "\n";
-        }
+        sideBody += deckRecord.side[name] + " " + name + "\n";
     }
     const chan = await msg.author.getDMChannel();
     let m;
@@ -156,23 +148,7 @@ const func = async (msg, mobile) => {
         if (sideCount > 0) {
             out += "__" + sideHeader + "__:\n" + sideBody;
         }
-        const outStrings = [];
-        const MESSAGE_CAP = 2000;
-        while (out.length > MESSAGE_CAP) {
-            let index = out.slice(0, MESSAGE_CAP).lastIndexOf("\n");
-            if (index === -1 || index >= MESSAGE_CAP) {
-                index = out.slice(0, MESSAGE_CAP).lastIndexOf(".");
-                if (index === -1 || index >= MESSAGE_CAP) {
-                    index = out.slice(0, MESSAGE_CAP).lastIndexOf(" ");
-                    if (index === -1 || index >= MESSAGE_CAP) {
-                        index = MESSAGE_CAP - 1;
-                    }
-                }
-            }
-            outStrings.push(out.slice(0, index + 1));
-            out = out.slice(index + 1);
-        }
-        outStrings.push(out);
+        const outStrings = util_1.messageCapSlice(out);
         for (const outString of outStrings) {
             m = await chan.createMessage(outString);
         }
@@ -181,18 +157,32 @@ const func = async (msg, mobile) => {
         const out = {
             embed: { title, fields: [], color: configs_1.config.getConfig("embedColor").getValue(msg) }
         };
-        if (mainCount > 0) {
-            out.embed.fields.push({ name: mainHeader, value: mainBody });
-        }
-        if (extraCount > 0) {
-            out.embed.fields.push({ name: extraHeader, value: extraBody });
-        }
-        if (sideCount > 0) {
-            out.embed.fields.push({ name: sideHeader, value: sideBody });
+        // come on typescript, really? it's declared right there
+        if (out.embed && out.embed.fields) {
+            if (mainCount > 0) {
+                const mainOuts = util_1.messageCapSlice(mainBody, 1024);
+                for (let i = 0; i < mainOuts.length; i++) {
+                    out.embed.fields.push({ name: mainHeader + (i > 0 ? " (Continued)" : ""), value: mainOuts[i] });
+                }
+            }
+            if (extraCount > 0) {
+                const extraOuts = util_1.messageCapSlice(extraBody, 1024);
+                for (let i = 0; i < extraOuts.length; i++) {
+                    out.embed.fields.push({ name: extraHeader + (i > 0 ? " (Continued)" : ""), value: extraOuts[i] });
+                }
+            }
+            if (sideCount > 0) {
+                const sideOuts = util_1.messageCapSlice(sideBody, 1024);
+                for (let i = 0; i < sideOuts.length; i++) {
+                    out.embed.fields.push({ name: sideHeader + (i > 0 ? " (Continued)" : ""), value: sideOuts[i] });
+                }
+            }
         }
         m = await chan.createMessage(out);
     }
-    await msg.addReaction("📬");
+    if (util_1.canReact(msg)) {
+        await msg.addReaction("📬");
+    }
     return m;
 };
 const desc = "Parses and lists the contents of a YGOPro `.ydk` deck file.";
